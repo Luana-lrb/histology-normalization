@@ -15,16 +15,16 @@ A normalização de coloração é uma etapa crucial no processamento de imagens
 
 ## Algoritmos Implementados
 
-- [ ] **Reinhard** - Transferência de estatísticas de cor
-- [ ] **Macenko** - Decomposição de manchas baseada em SVD
-- [ ] **Vahadane** - Decomposição esparsa não-negativa
-- [ ] **Modified Reinhard** - Variação modificada do método Reinhard
-- [ ] **Mult-Target Macenko** - Extensão do Macenko para múltiplas imagens alvo
-- [ ] **Histogram Matching** - Equalização de histogramas de cor
-- [ ] **Zeng et al.** - Método de normalização baseado em aprendizado profundo
+- **Reinhard** - Transferência de estatísticas de cor
+- **Macenko** - Decomposição de manchas baseada em SVD
+- **Vahadane** - Decomposição esparsa não-negativa
+- **Modified Reinhard** - Variação modificada do método Reinhard
+- **Mult-Target Macenko** - Extensão do Macenko para múltiplas imagens alvo
+- **Histogram Matching** - Equalização de histogramas de cor
+- **Zeng et al.** - Método de normalização baseado em aprendizado profundo
 
 ## Estrutura do Repositório (Pré-definição)
-
+```
 .
 ├── data/
 │   ├── raw/                    # Imagens originais
@@ -55,7 +55,7 @@ A normalização de coloração é uma etapa crucial no processamento de imagens
 │   └── results/                # Resultados dos experimentos
 ├── .gitignore
 └── README.md
-
+```
 ## Uso
 
 ### Normalização de uma imagem
@@ -90,16 +90,14 @@ Os resultados detalhados dos experimentos podem ser encontrados em `experiments/
 
 ## Datasets Utilizados
 
--  
+-  Dataset de displasia oral - Adriano
 
 ## Referências
 
 1. Reinhard, E., et al. (2001). Color transfer between images.
 2. Macenko, M., et al. (2009). A method for normalizing histology slides for quantitative analysis.
 3. Vahadane, A., et al. (2016). Structure-preserving color normalization and sparse stain separation.
-4.
-5.
-6.
+- [Falta adicionar as outras referências]
 
 ## Autor
 
