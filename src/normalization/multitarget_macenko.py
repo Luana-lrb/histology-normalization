@@ -20,7 +20,7 @@ class MultiTargetMacenko(BaseNormalizer):
             for img_path in reference_images
         ]
 
-        self.normalizer = torchstain.normalizers.MultiMacenkoNormalizer(norm_mode=self.norm_mode)
+        self.normalizer = torchstain.normalizers.MultiMacenkoNormalizer(backend="torch", norm_mode=self.norm_mode)
         self.normalizer.fit(refs)
 
     def __call__(self, image_path):
