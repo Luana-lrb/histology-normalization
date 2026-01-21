@@ -2,6 +2,7 @@ from torchvision import transforms
 from base import BaseNormalizer
 from utils import load_image, tensor_to_uint8, process_all_categories
 from torchstain.torch.normalizers.reinhard import TorchReinhardNormalizer
+
 class ModifiedReinhard(BaseNormalizer):
     def _fit(self, reference_image):
         target = load_image(reference_image)
