@@ -1,9 +1,7 @@
 from torchvision import transforms
-import torchstain
 from base import BaseNormalizer
 from utils import load_image, tensor_to_uint8, process_all_categories
-
-
+from torchstain.torch.normalizers.reinhard import TorchReinhardNormalizer
 class Reinhard(BaseNormalizer):
     def _fit(self, reference_image):
         target = load_image(reference_image)
@@ -13,9 +11,7 @@ class Reinhard(BaseNormalizer):
             transforms.Lambda(lambda x: x * 255)
         ])
 
-        self.normalizer = torchstain.normalizers.ReinhardNormalizer(
-            backend="torch"
-        )
+        self.normalizer = TorchReinhardNormalizer(method=None)
         self.normalizer.fit(self.transform(target))
 
     def __call__(self, image_path):
