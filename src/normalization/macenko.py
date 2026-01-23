@@ -30,7 +30,7 @@ if __name__ == "__main__":
     
     process_all_categories(
         raw_dir="data/mini_raw",
-        processed_dir="data/processed/mini_macenko",
+        processed_dir="data/mini_processed/mini_macenko",
         normalizer_fn=normalizer,
         categories=["healthy","mild","moderate","severe"]
     )

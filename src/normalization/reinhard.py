@@ -27,7 +27,7 @@ if __name__ == "__main__":
     normalizer = Reinhard("data/reference/ref1.tif")
     process_all_categories(
         raw_dir="data/mini_raw",
-        processed_dir="data/processed/mini_reinhard",
+        processed_dir="data/mini_processed/mini_reinhard",
         normalizer_fn=normalizer,
         categories=["healthy", "mild", "moderate", "severe"]
     )
