@@ -6,12 +6,17 @@ Este repositório contém a implementação e análise comparativa de diversos a
 
 A normalização de coloração é uma etapa crucial no processamento de imagens histológicas, pois reduz a variabilidade introduzida por diferentes protocolos de coloração, scanners e condições de aquisição, melhorando a performance de análises subsequentes.
 
-## Objetivos
+---
 
-- Implementar e comparar diferentes técnicas de normalização de imagens histológicas
-- Comparar o comportamento dos métodos sob diferentes imagens de referência
-- Fornecer uma base experimental organizada para análises qualitativas e quantitativas futuras
+# Objetivos
 
+- Implementar diferentes algoritmos de normalização histológica;
+- Comparar qualitativamente e quantitativamente os métodos;
+- Avaliar o impacto de múltiplas imagens de referência;
+- Investigar preservação estrutural e consistência cromática;
+- Construir uma base experimental reproduzível para estudos futuros.
+
+---
 
 ## Algoritmos Implementados
 
@@ -52,9 +57,16 @@ A normalização de coloração é uma etapa crucial no processamento de imagens
 │   ├── raw/                        # Imagens originais
 │   ├── processed/                  # Imagens normalizadas
 │   ├── reference/                  # Imagens de referência
-│   └── annotations/ 
-├── src/           
-│   ├── normalization/
+│   └── annotations/
+├── results/
+│   ├── metrics_partial.csv
+│   ├── metrics_summary.csv
+│   └── metrics.csv 
+├── src/
+│   ├── metrics/
+│       ├── evaluate_metrics.py
+│       └── metrics.py           
+│   └── normalization/
 │       ├── base.py
 │       ├── histogram_matching.py
 │       ├── macenko.py
@@ -68,21 +80,65 @@ A normalização de coloração é uma etapa crucial no processamento de imagens
 └── README.md
 ```
 
-## Execução
+# Execução
 
-> python run_all_normalizers.py
+## Executar normalizações
 
-Este script executa automaticamente todas as estratégias, com exeção da normalização do Zeng at. al, que deve ser executada separadamente.
+```bash
+python run_all_normalizers.py
+```
 
-## Avaliação
+> O método Zeng et al. deve ser executado separadamente devido à dependência de TensorFlow 1.x.
 
-As análises quantitativas e qualitativas incluem:
-- Comparação visual entre imagens normalizadas
-- Estudo do impacto da referência na distribuição de cores
-- Avaliação futura do impacto em tarefas downstream (classificação e segmentação)
+---
 
+## Executar métricas
+
+```bash
+python evaluate_metrics.py
+```
+
+---
+
+# Avaliação Quantitativa
+
+As imagens normalizadas foram avaliadas utilizando métricas de similaridade estrutural, estatística e perceptual.
+
+## Métricas Implementadas
+
+| Métrica | Objetivo |
+|---|---|
+| SSIM | Similaridade estrutural |
+| QSSIM | Similaridade estrutural multicanal |
+| PSNR | Relação sinal-ruído |
+| PCC | Correlação de Pearson |
+| DeltaE (CIEDE2000) | Diferença perceptual de cor |
+
+---
+
+## Estratégia de Avaliação
+
+Cada imagem normalizada foi comparada com:
+
+### 1. Imagem Original
+Avaliação da preservação estrutural da imagem.
+
+### 2. Imagem de Referência
+Avaliação da aderência cromática ao padrão alvo.
 ## Resultados
 Os resultados detalhados dos experimentos podem ser encontrados em `data/processed`. 
+
+---
+# Resultados
+
+Os resultados incluem:
+
+- imagens normalizadas;
+- métricas quantitativas;
+- comparações entre referências;
+- avaliação estrutural e colorimétrica.
+
+---
 
 ## Dataset Utilizado
 
@@ -133,4 +189,4 @@ O método Adaptive Color Deconvolution (Zeng et al.) foi executado utilizando a 
 
 **Status do Projeto**: 🚧 Em Desenvolvimento
 
-**Última Atualização**: Janeiro 2026
+**Última Atualização**: Maio 2026
