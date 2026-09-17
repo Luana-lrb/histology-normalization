@@ -4,38 +4,39 @@ from pathlib import Path
 
 def train_one_epoch(
     model,
-    dataloader,
-    criterion,
-    optimizer,
+    dataloader, # fornece os batches de imagens e labels
+    criterion, # calcula a loss
+    optimizer, # atualiza os pesos do modelo
     device
 ):
 
     model.train()
 
-    running_loss = 0.0
-    correct = 0
-    total = 0
+    running_loss = 0.0 # vamos acumular a loss de todos os batches
+    correct = 0 # previsões corretas durante a época
+    total = 0 # quantidade de imagens processadas
 
     for images, labels in dataloader:
 
+        # mandando pro hardware
         images = images.to(device)
         labels = labels.to(device)
 
-        optimizer.zero_grad()
+        optimizer.zero_grad() # limpa os gradientes anteriores em cada batch
 
-        outputs = model(images)
+        outputs = model(images) # retorna [32,4], sendo 4 os logits para cada classe
 
-        loss = criterion(outputs, labels)
+        loss = criterion(outputs, labels) # quanto a previsão está distante da classe correta
 
-        loss.backward()
+        loss.backward() # backpropagation: calcula os gradientes da loss em relação aos pesos do modelo
 
-        optimizer.step()
+        optimizer.step() # atualiza os pesos
 
-        running_loss += loss.item() * images.size(0)
+        running_loss += loss.item() * images.size(0) # acumula a loss pelo tamanho do batch
 
-        _, predictions = torch.max(outputs, dim=1)
+        _, predictions = torch.max(outputs, dim=1) # retorna o valor máximo e o índice do valor máximo (classe prevista) para cada imagem
 
-        correct += (predictions == labels).sum().item()
+        correct += (predictions == labels).sum().item() # conta os true
 
         total += labels.size(0)
 
@@ -56,9 +57,9 @@ def validate(
     correct = 0
     total = 0
 
-    with torch.no_grad():
+    with torch.no_grad(): # Não precisamos calcular os gradientes durante a validação
 
-        for images, labels in dataloader:
+        for images, labels in dataloader: # um batch de cada vez
 
             images = images.to(device)
             labels = labels.to(device)
@@ -104,8 +105,8 @@ def train_model(
         "val_acc": []
     }
 
-    best_val_loss = float("inf")
-    epochs_without_improvement = 0
+    best_val_loss = float("inf") # começa com a pior loss possível (infinito)
+    epochs_without_improvement = 0 # contador para o early stopping
 
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +128,7 @@ def train_model(
             device=device
         )
 
-        scheduler.step(val_loss)
+        scheduler.step(val_loss) # pega a val loss e observa se precisa reduzir a learning rate
 
         history["train_loss"].append(train_loss)
         history["train_acc"].append(train_acc)
