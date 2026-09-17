@@ -4,16 +4,13 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from config import (
-    PROJECT_ROOT,
+    RAW_DATASET_DIR,
     SPLITS_DIR,
-    SEED,
+    SPLIT_SEED,
     TRAIN_SIZE,
     VALIDATION_SIZE,
     TEST_SIZE
 )
-
-
-RAW_DATASET_DIR = PROJECT_ROOT / "data" / "raw"
 
 def extract_group_id(image_path: Path, label: str) -> str:
     """
@@ -68,7 +65,7 @@ def generate_splits():
 
     df = build_dataframe()
     
-    groups_df = (
+    groups_df = ( # separando imagens e não ROIs
         df[["group", "label"]]
         .drop_duplicates()
         .reset_index(drop=True)
@@ -77,8 +74,8 @@ def generate_splits():
     train_groups, temp_groups = train_test_split(
         groups_df,
         train_size=TRAIN_SIZE,
-        stratify=groups_df["label"],
-        random_state=SEED
+        stratify=groups_df["label"], # para as classes serem balanceadas entre os conjuntos
+        random_state=SPLIT_SEED
     )
 
     validation_ratio = VALIDATION_SIZE / (VALIDATION_SIZE + TEST_SIZE)
@@ -87,7 +84,7 @@ def generate_splits():
         temp_groups,
         train_size=validation_ratio,
         stratify=temp_groups["label"],
-        random_state=SEED
+        random_state=SPLIT_SEED
     )
     
     train_df = df[
