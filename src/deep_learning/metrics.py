@@ -28,22 +28,22 @@ def calculate_classification_metrics(labels, predictions):
     f1 = f1_score(
         labels,
         predictions,
-        average="macro",
+        average="macro", # caulcula pras 4 classes e depois faz a media
         zero_division=0
     )
 
     return {
-    "precision": precision,
-    "recall": recall,
-    "f1": f1
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
     }
     
 def calculate_auc(labels, probabilities):
     return roc_auc_score(
         labels,
         probabilities,
-        multi_class="ovr",
-        average="macro"
+        multi_class="ovr", # one-vs-rest, calcula a AUC para cada classe contra todas as outras classes
+        average="macro" # depois faz a media das AUCs de cada classe
     )
     
 def calculate_confusion_matrix(labels, predictions):
@@ -52,7 +52,7 @@ def calculate_confusion_matrix(labels, predictions):
 def calculate_all_metrics(labels, predictions, probabilities):
     metrics = {
         "accuracy": calculate_accuracy(labels, predictions),
-        **calculate_classification_metrics(labels, predictions),
+        **calculate_classification_metrics(labels, predictions), # os ateriscos desempacotam o dicionario
         "auc": calculate_auc(labels, probabilities)
     }
 
