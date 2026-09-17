@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -23,12 +22,12 @@ from config import (
     TOP_K_NORMALIZATIONS
 )
 
-from experiments import EXPERIMENT_1, create_experiment_2
+from experiments import EXPERIMENT_0, EXPERIMENT_1, create_experiment_2
 
 from dataset import HistologyDataset
 
 from transforms import (
-    train_transform,
+    create_train_transform,
     validation_transform
 )
 
@@ -86,10 +85,13 @@ def train_experiment(
     reference,
     normalization,
     experiment_dir,
-    seed
+    seed,
+    use_augmentation
 ):
 
     set_seed(seed)
+    
+    train_transform = create_train_transform(use_augmentation)
 
     dataset_dir = get_dataset_dir(
         dataset_type,
@@ -186,6 +188,7 @@ def train_experiment(
         "dataset_type": dataset_type,
         "reference": reference,
         "normalization": normalization,
+        "augmentation": use_augmentation,
         "experiment_dir": experiment_dir,
         "model_path": save_path,
         "seed": seed,
@@ -348,6 +351,31 @@ def save_classification_summary(results, save_path):
                 row[f"{metric}_std"] = std
 
             writer.writerow(row)
+            
+def calculate_best_augmentation(results):
+
+    validation_f1 = {}
+
+    for result in results:
+
+        augmentation = result["augmentation"]
+
+        if augmentation not in validation_f1:
+            validation_f1[augmentation] = []
+
+        validation_f1[augmentation].append(
+            result["validation_metrics"]["f1"]
+        )
+
+    mean_f1 = {
+        augmentation: sum(scores) / len(scores)
+        for augmentation, scores in validation_f1.items()
+    }
+
+    return max(
+        mean_f1,
+        key=mean_f1.get
+    )
 
 
 def calculate_best_normalizations(results):
@@ -390,16 +418,63 @@ def main():
         parents=True,
         exist_ok=True
     )
+    
+    print("\n========================================")
+    print("EXPERIMENTO 0")
+    print("========================================\n")
 
-    # ========================================================
-    # EXPERIMENTO 1
-    # ========================================================
+    
+    experiment_0_results = []
+
+    for augmentation_name, use_augmentation in EXPERIMENT_0:
+
+        for seed in SEEDS:
+
+            experiment_dir = (
+                results_dir
+                / "experiment_0"
+                / augmentation_name
+                / f"seed_{seed}"
+            )
+
+            result = train_experiment(
+                dataset_type="raw",
+                reference=None,
+                normalization=None,
+                experiment_dir=experiment_dir,
+                seed=seed,
+                use_augmentation=use_augmentation
+            )
+
+            experiment_0_results.append(result)
+            
+    best_augmentation = calculate_best_augmentation(
+        experiment_0_results
+    )
+    
+    augmentation_name = (
+        "com augmentation"
+        if best_augmentation
+        else "sem augmentation"
+    )
+
+    print("\n========================================")
+    print("AUGMENTATION SELECIONADO")
+    print("========================================\n")
+
+    print(f"Configuração escolhida: {augmentation_name}")
+    
+    selected_raw_results = [
+        result
+        for result in experiment_0_results
+        if result["augmentation"] == best_augmentation
+    ]
 
     print("\n========================================")
     print("EXPERIMENTO 1")
     print("========================================\n")
-
-    experiment_1_results = []
+    
+    experiment_1_results = selected_raw_results.copy()
 
     for dataset_type, reference, normalization in EXPERIMENT_1:
 
@@ -433,7 +508,8 @@ def main():
                 reference,
                 normalization,
                 experiment_dir,
-                seed
+                seed,
+                best_augmentation
             )
 
             experiment_1_results.append(result)
@@ -442,10 +518,6 @@ def main():
                 f"Validation F1: "
                 f"{result['validation_metrics']['f1']:.4f}"
             )
-
-    # ========================================================
-    # SELEÇÃO DAS MELHORES NORMALIZAÇÕES
-    # ========================================================
 
     best_normalizations = calculate_best_normalizations(
         experiment_1_results
@@ -458,10 +530,6 @@ def main():
     for normalization in best_normalizations:
         print(normalization)
 
-    # ========================================================
-    # EXPERIMENTO 2
-    # ========================================================
-
     print("\n========================================")
     print("EXPERIMENTO 2")
     print("========================================\n")
@@ -470,7 +538,7 @@ def main():
         best_normalizations
     )
 
-    experiment_2_results = []
+    experiment_2_results = selected_raw_results.copy()
 
     for dataset_type, reference, normalization in experiment_2:
 
@@ -504,7 +572,8 @@ def main():
                 reference,
                 normalization,
                 experiment_dir,
-                seed
+                seed,
+                best_augmentation
             )
 
             experiment_2_results.append(result)
@@ -513,10 +582,6 @@ def main():
                 f"Validation F1: "
                 f"{result['validation_metrics']['f1']:.4f}"
             )
-
-    # ========================================================
-    # AVALIAÇÃO FINAL NO TESTE
-    # ========================================================
 
     print("\n========================================")
     print("AVALIAÇÃO FINAL NO TESTE")
@@ -554,6 +619,9 @@ def main():
         })
 
     for experiment in experiment_2_results:
+        
+        if experiment["dataset_type"] == "raw":
+            continue
 
         dataset_dir = get_dataset_dir(
             experiment["dataset_type"],
@@ -582,10 +650,7 @@ def main():
             **metrics
         })
 
-    # ========================================================
     # SALVAR RESULTADOS CONSOLIDADOS
-    # ========================================================
-
     save_all_results(
         all_results,
         results_dir / "classification_results.csv"
