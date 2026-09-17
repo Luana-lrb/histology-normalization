@@ -14,10 +14,12 @@ REFERENCES = [
     "ref3"
 ]
 
-
-EXPERIMENT_1 = [
-    ("raw", None, None)
+EXPERIMENT_0 = [
+    ("with_augmentation", True),
+    ("without_augmentation", False)
 ]
+
+EXPERIMENT_1 = []
 
 
 for normalization in NORMALIZATIONS:
@@ -27,9 +29,7 @@ for normalization in NORMALIZATIONS:
 
 
 def create_experiment_2(best_normalizations):
-    experiments = [
-        ("raw", None, None)
-    ]
+    experiments = []
 
     for normalization in best_normalizations:
         for reference in REFERENCES:
