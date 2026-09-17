@@ -16,14 +16,14 @@ class HistologyDataset(Dataset):
         self,
         csv_file: Path,
         root_dir: Path,
-        transform: Optional[Callable] = None
+        transform: Optional[Callable] = None # pode ser uma tranformação executável ou não existir
     ):
-        self.data = pd.read_csv(csv_file)
-        self.root_dir = Path(root_dir)
+        self.data = pd.read_csv(csv_file) # pega o csv pra se tornar um DataFrame
+        self.root_dir = Path(root_dir) # para o csv só guardar o caminho relativo
         self.transform = transform
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data) # quantas imagens tem no DataFrame
 
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
