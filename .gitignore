@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+
+# Model checkpoints
+*.pth
+*.pt
+
+# Environment
+.env

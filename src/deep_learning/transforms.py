@@ -66,6 +66,8 @@ def create_train_transform(use_augmentation):
                 std=IMAGENET_STD
             )
         ])
+        
+    return train_transform
 
 
 validation_transform = transforms.Compose([

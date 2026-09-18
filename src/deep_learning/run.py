@@ -437,6 +437,8 @@ def main():
                 / f"seed_{seed}"
             )
 
+            print(f"Executando: raw | {augmentation_name} | Seed: {seed}")
+
             result = train_experiment(
                 dataset_type="raw",
                 reference=None,

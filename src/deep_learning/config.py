@@ -46,7 +46,7 @@ PRETRAINED = True # Se vai ser pre treinado no ImageNet
 BATCH_SIZE = 32 # A rede recebe 32 imagens por vez
 # Se são 320 imagens -> 10 baches = 1 época
 
-NUM_WORKERS = 4 # Quantos processos auxiliares do DataLoader prepararão as imagens
+NUM_WORKERS = 0 # Quantos processos auxiliares do DataLoader prepararão as imagens
 
 EPOCHS = 50 # limite máximo
 
@@ -54,7 +54,7 @@ LEARNING_RATE = 1e-4 # controla o tamanho das atualizações dos pesos da rede
 
 WEIGHT_DECAY = 1e-4 # evitar que os pesos cresçam excessivamente
 
-PATIENCE = 8 # Early Stopping - se a validação não melhorar por 8 épocas
+PATIENCE = 10 # Early Stopping - se a validação não melhorar por 10 épocas
 
 # ============================================================
 # Divisão do Dataset
