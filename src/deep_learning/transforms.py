@@ -1,6 +1,8 @@
 from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 from PIL import ImageOps
 from config import IMAGE_SIZE
+
 
 def pad_to_square(image):
     """
@@ -39,13 +41,15 @@ def create_train_transform(use_augmentation):
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
             transforms.RandomRotation(
-                degrees=10,
-                fill=(255, 255, 255)
+            degrees=10,
+            #interpolation=InterpolationMode.BILINEAR,
+            fill=(255, 255, 255)
             ),
             transforms.RandomAffine(
-                degrees=0, # sem rotação, pois já foi feita acima
+                degrees=0,
                 translate=(0.05, 0.05),
                 scale=(0.95, 1.05),
+                #interpolation=InterpolationMode.BILINEAR,
                 fill=(255, 255, 255)
             ),
             transforms.ToTensor(),

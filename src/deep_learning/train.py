@@ -1,5 +1,11 @@
 import torch
 from pathlib import Path
+from config import (
+    TRAINING_MODE,
+    FREEZE_BN_STATS,
+    FREEZE_ALL_BN_STATS,
+    FREEZE_LAYERS
+)
 
 
 def train_one_epoch(
@@ -9,8 +15,24 @@ def train_one_epoch(
     optimizer, # atualiza os pesos do modelo
     device
 ):
-
     model.train()
+
+    if TRAINING_MODE == "classifier_only":
+        model.features.eval()
+
+    elif TRAINING_MODE == "partial":
+
+        if FREEZE_ALL_BN_STATS:
+            # Congela todas as BatchNorm do extrator
+            for layer in model.features.modules():
+                if isinstance(layer, torch.nn.BatchNorm2d):
+                    layer.eval()
+
+        elif FREEZE_BN_STATS:
+            # Congela as estatísticas apenas dos módulos congelados
+            for layer in model.features[:FREEZE_LAYERS].modules():
+                if isinstance(layer, torch.nn.BatchNorm2d):
+                    layer.eval()
 
     running_loss = 0.0 # vamos acumular a loss de todos os batches
     correct = 0 # previsões corretas durante a época
@@ -102,7 +124,9 @@ def train_model(
         "train_loss": [],
         "train_acc": [],
         "val_loss": [],
-        "val_acc": []
+        "val_acc": [],
+        "lr": [],
+        "lr_classifier": []
     }
 
     best_val_loss = float("inf") # começa com a pior loss possível (infinito)
@@ -112,6 +136,13 @@ def train_model(
     save_path.parent.mkdir(parents=True, exist_ok=True)
 
     for epoch in range(epochs):
+
+        current_lr = optimizer.param_groups[0]["lr"]
+        current_lr_classifier = (
+            optimizer.param_groups[1]["lr"]
+            if len(optimizer.param_groups) > 1
+            else current_lr
+        )
 
         train_loss, train_acc = train_one_epoch(
             model=model,
@@ -134,6 +165,8 @@ def train_model(
         history["train_acc"].append(train_acc)
         history["val_loss"].append(val_loss)
         history["val_acc"].append(val_acc)
+        history["lr"].append(current_lr)
+        history["lr_classifier"].append(current_lr_classifier)
 
         if val_loss < best_val_loss:
 
@@ -161,7 +194,8 @@ def train_model(
             f"Train Loss: {train_loss:.4f} | "
             f"Train Acc: {train_acc:.4f} | "
             f"Val Loss: {val_loss:.4f} | "
-            f"Val Acc: {val_acc:.4f}"
+            f"Val Acc: {val_acc:.4f} | "
+            f"LR Backbone: {current_lr:.2e} | "
+            f"LR Classifier: {current_lr_classifier:.2e}"
         )
-
     return history

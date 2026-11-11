@@ -31,12 +31,13 @@ for normalization in NORMALIZATIONS:
 def create_experiment_2(best_normalizations):
     experiments = []
 
+    # referência 1 já foi utilizada no Experimento 1
+    # treinamos apenas com as referências 2 e 3
     for normalization in best_normalizations:
-        for reference in REFERENCES:
+        for reference in ["ref2", "ref3"]:
             experiments.append(
                 ("processed", reference, normalization)
             )
-
     experiments.append(
         ("processed", None, "multitarget_macenko")
     )

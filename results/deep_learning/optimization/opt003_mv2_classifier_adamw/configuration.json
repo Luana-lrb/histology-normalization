@@ -1,0 +1,23 @@
+{
+    "architecture": "mobilenet_v2",
+    "pretrained": true,
+    "training_mode": "classifier_only",
+    "freeze_layers": "all_features",
+    "dataset": "raw",
+    "augmentation": true,
+    "optimizer": "adamw",
+    "scheduler": "plateau",
+    "scheduler_factor": 0.1,
+    "scheduler_patience": 3,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "epochs": 50,
+    "early_stopping_patience": 10,
+    "seeds": [
+        42,
+        68,
+        93
+    ],
+    "device": "cuda"
+}

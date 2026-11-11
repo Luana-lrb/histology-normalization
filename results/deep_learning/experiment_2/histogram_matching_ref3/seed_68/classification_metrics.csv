@@ -1,0 +1,5 @@
+accuracy,0.6901
+precision,0.6885
+recall,0.7003
+f1,0.6907
+auc,0.8837

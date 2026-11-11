@@ -19,7 +19,7 @@ RESULTS_DIR = PROJECT_ROOT / "results"
 # ============================================================
 # Dataset
 # ============================================================
-TOP_K_NORMALIZATIONS = 3 # Selecionamos as 3 melhores para o exp 2
+TOP_K_NORMALIZATIONS = 6 # Selecionamos as melhores para o exp 2
 
 RAW_DATASET_DIR = DATA_DIR / "raw"
 
@@ -37,11 +37,22 @@ CLASS_NAMES = [
 
 IMAGE_SIZE = 224
 
-PRETRAINED = True # Se vai ser pre treinado no ImageNet
-
 # ============================================================
 # Treinamento
 # ============================================================
+
+MODEL_ARCH = "efficientnet_b0"
+
+PRETRAINED = True # Se vai ser pre treinado no ImageNet
+
+FREEZE_LAYERS = 0
+
+TRAINING_MODE = "partial"
+#TRAINING_MODE = "classifier_only"
+
+FREEZE_BN_STATS = False
+
+FREEZE_ALL_BN_STATS = False
 
 BATCH_SIZE = 32 # A rede recebe 32 imagens por vez
 # Se são 320 imagens -> 10 baches = 1 época
@@ -50,11 +61,26 @@ NUM_WORKERS = 0 # Quantos processos auxiliares do DataLoader prepararão as imag
 
 EPOCHS = 50 # limite máximo
 
+DROPOUT_RATE = 0.2
+
+USE_DIFFERENTIAL_LR = False
+
+BACKBONE_LR = 5e-5
+CLASSIFIER_LR = 1e-3
+
 LEARNING_RATE = 1e-4 # controla o tamanho das atualizações dos pesos da rede
 
 WEIGHT_DECAY = 1e-4 # evitar que os pesos cresçam excessivamente
 
 PATIENCE = 10 # Early Stopping - se a validação não melhorar por 10 épocas
+
+OPTIMIZER_NAME = "adam"  # "adam" ou "adamw"
+
+SCHEDULER_NAME = "plateau"
+
+SCHEDULER_FACTOR = 0.1
+
+SCHEDULER_PATIENCE = 3
 
 # ============================================================
 # Divisão do Dataset

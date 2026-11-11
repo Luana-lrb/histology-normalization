@@ -1,0 +1,40 @@
+{
+    "model_arch": "efficientnet_b0",
+    "pretrained": true,
+    "training_mode": "partial",
+    "freeze_layers": 0,
+    "freeze_bn_stats": false,
+    "freeze_all_bn_stats": false,
+    "image_size": 224,
+    "batch_size": 32,
+    "epochs": 50,
+    "early_stopping_patience": 10,
+    "optimizer": "adam",
+    "learning_rate": 0.0001,
+    "use_differential_lr": false,
+    "backbone_lr": 5e-05,
+    "classifier_lr": 0.001,
+    "weight_decay": 0.0001,
+    "dropout_rate": 0.2,
+    "scheduler": "plateau",
+    "scheduler_factor": 0.1,
+    "scheduler_patience": 3,
+    "loss_function": "CrossEntropyLoss",
+    "label_smoothing": 0.0,
+    "class_weights": null,
+    "augmentation": true,
+    "augmentation_interpolation": "NEAREST",
+    "checkpoint_selection": "min_validation_loss",
+    "normalization_selection": "mean_validation_f1",
+    "seeds": [
+        42,
+        68,
+        93
+    ],
+    "device": "cuda",
+    "selected_normalizations": [
+        "macenko",
+        "modified_reinhard",
+        "vahadane"
+    ]
+}

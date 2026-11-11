@@ -1,9 +1,12 @@
+import torch
 from torch import nn
-from torch.optim import Adam
+from torch.optim import Adam, AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 import csv
 import math
+import json
+from statistics import mean, stdev
 
 from config import (
     SPLITS_DIR,
@@ -15,11 +18,26 @@ from config import (
     NUM_WORKERS,
     LEARNING_RATE,
     WEIGHT_DECAY,
+    MODEL_ARCH,
     EPOCHS,
     SEEDS,
     PATIENCE,
     CLASS_NAMES,
-    TOP_K_NORMALIZATIONS
+    TOP_K_NORMALIZATIONS,
+    OPTIMIZER_NAME,
+    SCHEDULER_NAME,
+    SCHEDULER_FACTOR,
+    SCHEDULER_PATIENCE,
+    PRETRAINED,
+    FREEZE_LAYERS,
+    TRAINING_MODE,
+    DROPOUT_RATE,
+    USE_DIFFERENTIAL_LR,
+    BACKBONE_LR,
+    CLASSIFIER_LR,
+    FREEZE_BN_STATS,
+    IMAGE_SIZE,
+    FREEZE_ALL_BN_STATS
 )
 
 from experiments import EXPERIMENT_0, EXPERIMENT_1, create_experiment_2
@@ -127,19 +145,69 @@ def train_experiment(
 
     model = create_model().to(DEVICE)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss() # testei com o label_smoothing
 
-    optimizer = Adam(
-        model.parameters(),
-        lr=LEARNING_RATE,
-        weight_decay=WEIGHT_DECAY
-    )
+    if OPTIMIZER_NAME == "adam":
 
-    scheduler = ReduceLROnPlateau(
-        optimizer,
-        mode="min",
-        factor=0.1,
-        patience=3
+        optimizer = Adam(
+            model.parameters(),
+            lr=LEARNING_RATE,
+            weight_decay=WEIGHT_DECAY
+        )
+
+    elif OPTIMIZER_NAME == "adamw":
+
+        if USE_DIFFERENTIAL_LR and TRAINING_MODE == "partial":
+
+            backbone_params = [
+                p for p in model.features.parameters()
+                if p.requires_grad
+            ]
+
+            classifier_params = [
+                p for p in model.classifier.parameters()
+                if p.requires_grad
+            ]
+
+            optimizer = AdamW(
+                [
+                    {
+                        "params": backbone_params,
+                        "lr": BACKBONE_LR
+                    },
+                    {
+                        "params": classifier_params,
+                        "lr": CLASSIFIER_LR
+                    }
+                ],
+                weight_decay=WEIGHT_DECAY
+            )
+
+        else:
+
+            optimizer = AdamW(
+                (p for p in model.parameters() if p.requires_grad),
+                lr=LEARNING_RATE,
+                weight_decay=WEIGHT_DECAY
+            )
+
+    else:
+        raise ValueError(
+            f"Otimizador não reconhecido: {OPTIMIZER_NAME}"
+        )
+
+    if SCHEDULER_NAME == "plateau":
+
+        scheduler = ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=SCHEDULER_FACTOR,
+            patience=SCHEDULER_PATIENCE
+        )
+
+    else:
+        raise ValueError(
+            f"Scheduler não reconhecido: {SCHEDULER_NAME}"
     )
 
     save_path = experiment_dir / "best_model.pth"
@@ -156,6 +224,32 @@ def train_experiment(
         patience=PATIENCE,
         save_path=save_path
     )
+    # Salvar histórico completo do treinamento
+    history_path = experiment_dir / "training_history.csv"
+
+    with open(history_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        writer.writerow([
+            "epoch",
+            "train_loss",
+            "train_acc",
+            "val_loss",
+            "val_acc",
+            "lr",
+            "lr_classifier"
+        ])
+
+        for i in range(len(history["train_loss"])):
+            writer.writerow([
+                i + 1,
+                history["train_loss"][i],
+                history["train_acc"][i],
+                history["val_loss"][i],
+                history["val_acc"][i],
+                history["lr"][i],
+                history["lr_classifier"][i]
+            ])
 
     plot_training_history(
         history,
@@ -239,7 +333,6 @@ def evaluate_test(
     )
 
     return metrics
-
 
 def save_all_results(results, save_path):
 
@@ -377,7 +470,6 @@ def calculate_best_augmentation(results):
         key=mean_f1.get
     )
 
-
 def calculate_best_normalizations(results):
 
     validation_f1 = {}
@@ -412,11 +504,15 @@ def calculate_best_normalizations(results):
 
 def main():
 
-    results_dir = RESULTS_DIR / "deep_learning"
+    results_dir = (
+        RESULTS_DIR
+        / "deep_learning"
+        / "all_references_01"
+    )
 
     results_dir.mkdir(
         parents=True,
-        exist_ok=True
+        exist_ok=False
     )
     
     print("\n========================================")
@@ -465,6 +561,54 @@ def main():
     print("========================================\n")
 
     print(f"Configuração escolhida: {augmentation_name}")
+
+    # ============================================================
+    # REGISTRO DA CONFIGURAÇÃO FINAL
+    # ============================================================
+
+    configuration = {
+        "model_arch": MODEL_ARCH,
+        "pretrained": PRETRAINED,
+        "training_mode": TRAINING_MODE,
+        "freeze_layers": FREEZE_LAYERS,
+        "freeze_bn_stats": FREEZE_BN_STATS,
+        "freeze_all_bn_stats": FREEZE_ALL_BN_STATS,
+
+        "image_size": IMAGE_SIZE,
+        "batch_size": BATCH_SIZE,
+        "epochs": EPOCHS,
+        "early_stopping_patience": PATIENCE,
+
+        "optimizer": OPTIMIZER_NAME,
+        "learning_rate": LEARNING_RATE,
+        "use_differential_lr": USE_DIFFERENTIAL_LR,
+        "backbone_lr": BACKBONE_LR,
+        "classifier_lr": CLASSIFIER_LR,
+        "weight_decay": WEIGHT_DECAY,
+        "dropout_rate": DROPOUT_RATE,
+
+        "scheduler": SCHEDULER_NAME,
+        "scheduler_factor": SCHEDULER_FACTOR,
+        "scheduler_patience": SCHEDULER_PATIENCE,
+
+        "loss_function": "CrossEntropyLoss",
+        "label_smoothing": 0.0,
+        "class_weights": None,
+
+        "augmentation": best_augmentation,
+        "augmentation_interpolation": "NEAREST",
+        "checkpoint_selection": "min_validation_loss",
+        "normalization_selection": "mean_validation_f1",
+        "seeds": SEEDS,
+        "device": str(DEVICE)
+    }
+
+    with open(
+        results_dir / "configuration_final.json",
+        "w",
+        encoding="utf-8"
+    ) as file:
+        json.dump(configuration, file, indent=4)
     
     selected_raw_results = [
         result
@@ -531,6 +675,15 @@ def main():
 
     for normalization in best_normalizations:
         print(normalization)
+    
+    configuration["selected_normalizations"] = best_normalizations
+
+    with open(
+        results_dir / "configuration_final.json",
+        "w",
+        encoding="utf-8"
+    ) as file:
+        json.dump(configuration, file, indent=4)
 
     print("\n========================================")
     print("EXPERIMENTO 2")
@@ -585,6 +738,76 @@ def main():
                 f"{result['validation_metrics']['f1']:.4f}"
             )
 
+    # ============================================================
+    # SALVAR RESULTADOS DE VALIDAÇÃO
+    # ============================================================
+
+    validation_entries = []
+
+    # Experimento 0: com e sem augmentation
+    for result in experiment_0_results:
+
+        augmentation_name = (
+            "with_augmentation"
+            if result["augmentation"]
+            else "without_augmentation"
+        )
+
+        validation_entries.append((
+            f"experiment_0_{augmentation_name}",
+            result
+        ))
+
+    # Experimento 1: RAW selecionado e normalizações com ref1
+    for result in experiment_1_results:
+        validation_entries.append(("experiment_1", result))
+
+    # Experimento 2: RAW selecionado, ref2, ref3 e multi-target
+    for result in experiment_2_results:
+        validation_entries.append(("experiment_2", result))
+
+    for result in experiment_1_results:
+
+        if (
+            result["dataset_type"] == "processed"
+            and result["reference"] == "ref1"
+            and result["normalization"] in best_normalizations
+        ):
+            validation_entries.append(("experiment_2", result))
+
+    validation_rows = []
+
+    for experiment_name, result in validation_entries:
+
+        validation_rows.append({
+            "experiment": experiment_name,
+            "dataset_type": result["dataset_type"],
+            "reference": result["reference"],
+            "normalization": result["normalization"],
+            "seed": result["seed"],
+            **{
+                metric: result["validation_metrics"][metric]
+                for metric in [
+                    "accuracy",
+                    "precision",
+                    "recall",
+                    "f1",
+                    "auc"
+                ]
+            }
+        })
+
+    save_all_results(
+        validation_rows,
+        results_dir / "validation_results.csv"
+    )
+    save_classification_summary(
+        validation_rows,
+        results_dir / "validation_summary.csv"
+    )
+
+    print("\nResultados de validação salvos com sucesso.")
+
     print("\n========================================")
     print("AVALIAÇÃO FINAL NO TESTE")
     print("========================================\n")
@@ -611,14 +834,27 @@ def main():
             test_loader
         )
 
-        all_results.append({
+        # resultados do Experimento 1
+        result_row = {
             "experiment": "experiment_1",
             "dataset_type": experiment["dataset_type"],
             "reference": experiment["reference"],
             "normalization": experiment["normalization"],
             "seed": experiment["seed"],
             **metrics
-        })
+        }
+
+        all_results.append(result_row)
+
+        if (
+            experiment["dataset_type"] == "processed"
+            and experiment["reference"] == "ref1"
+            and experiment["normalization"] in best_normalizations
+        ):
+            all_results.append({
+                **result_row,
+                "experiment": "experiment_2"
+            })
 
     for experiment in experiment_2_results:
         
@@ -669,16 +905,176 @@ def main():
 
     for result in all_results:
 
+        if result["dataset_type"] == "raw":
+
+            condition = "RAW"
+
+        else:
+
+            condition = (
+                f"{result['normalization']} | "
+                f"{result['reference']}"
+            )
+
         print(
             f"{result['experiment']} | "
-            f"{result['normalization']} | "
-            f"{result['reference']} | "
+            f"{condition} | "
             f"Seed: {result['seed']} | "
             f"Accuracy: {result['accuracy']:.4f} | "
             f"F1: {result['f1']:.4f} | "
             f"AUC: {result['auc']:.4f}"
         )
 
+def run_isolated():
+
+    experiment_id = "opt020"
+
+    experiment_name = (
+        f"{experiment_id}_{MODEL_ARCH}_"
+        + (
+            f"f{FREEZE_LAYERS}"
+            if TRAINING_MODE == "partial"
+            else "classifier"
+        )
+        + f"_{OPTIMIZER_NAME}"
+    )
+
+    experiment_dir = (
+        RESULTS_DIR
+        / "deep_learning"
+        / "optimization"
+        / experiment_name
+    )
+
+    if experiment_dir.exists():
+        raise FileExistsError(
+            f"Experimento já existe: {experiment_dir}"
+        )
+
+    experiment_dir.mkdir(parents=True, exist_ok=False)
+
+    configuration = {
+        "model_arch": MODEL_ARCH,
+        "pretrained": PRETRAINED,
+        "training_mode": TRAINING_MODE,
+        "dropout_rate": DROPOUT_RATE,
+        "label_smoothing": 0.05,
+        "freeze_layers": (
+            FREEZE_LAYERS
+            if TRAINING_MODE == "partial"
+            else "all_features"),
+        "dataset": "raw",
+        "augmentation": True,
+        "optimizer": OPTIMIZER_NAME,
+        "scheduler": SCHEDULER_NAME,
+        "scheduler_factor": SCHEDULER_FACTOR,
+        "scheduler_patience": SCHEDULER_PATIENCE,
+        "learning_rate": LEARNING_RATE,
+        "use_differential_lr": USE_DIFFERENTIAL_LR,
+        "backbone_lr": BACKBONE_LR,
+        "classifier_lr": CLASSIFIER_LR,
+        "weight_decay": WEIGHT_DECAY,
+        "batch_size": BATCH_SIZE,
+        "image_size": IMAGE_SIZE,
+        "epochs": EPOCHS,
+        "early_stopping_patience": PATIENCE,
+        "seeds": SEEDS,
+        "freeze_bn_stats": FREEZE_BN_STATS,
+        "freeze_all_bn_stats": FREEZE_ALL_BN_STATS,
+        "device": str(DEVICE)
+    }
+
+    with open(
+        experiment_dir / "configuration.json",
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(configuration, file, indent=4)
+
+    validation_results = []
+    
+    for seed in SEEDS:
+
+        seed_dir = experiment_dir / f"seed_{seed}"
+
+        result = train_experiment(
+            dataset_type="raw",
+            reference=None,
+            normalization=None,
+            experiment_dir=seed_dir,
+            seed=seed,
+            use_augmentation=True
+        )
+
+        validation_results.append({
+            "seed": seed,
+            **result["validation_metrics"]
+        })
+
+        print(
+            f"Seed {seed} | "
+            f"Validation F1: "
+            f"{result['validation_metrics']['f1']:.4f}"
+        )
+   
+    validation_path = experiment_dir / "validation_results.csv"
+
+    with open(validation_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=["seed", "accuracy", "precision", "recall", "f1", "auc"]
+        )
+
+        writer.writeheader()
+        writer.writerows(validation_results)
+
+    # Resumo das métricas de validação
+
+    metrics_names = ["accuracy", "precision", "recall", "f1", "auc"]
+
+    summary_path = experiment_dir / "validation_summary.csv"
+
+    with open(summary_path, "w", newline="", encoding="utf-8") as file:
+
+        writer = csv.writer(file)
+        writer.writerow(["metric", "mean", "std"])
+
+        for metric in metrics_names:
+
+            values = [
+                result[metric]
+                for result in validation_results
+            ]
+
+            metric_mean = mean(values)
+            metric_std = stdev(values) if len(values) > 1 else 0.0
+
+            writer.writerow([
+                metric,
+                metric_mean,
+                metric_std
+            ])
+
+            print(
+                f"{metric.upper()}: "
+                f"{metric_mean:.4f} ± {metric_std:.4f}"
+            )
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--mode",
+        choices=["full", "isolated"],
+        default="full"
+    )
+
+    args = parser.parse_args()
+
+    if args.mode == "isolated":
+        run_isolated()
+    else:
+        main()
